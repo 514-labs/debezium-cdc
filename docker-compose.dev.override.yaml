@@ -29,30 +29,61 @@ services:
 
   # Kafka Connect with Debezium - integrates with Moose's Redpanda
   kafka-connect:
-    image: debezium/connect:2.3
+    image: quay.io/debezium/connect:3.3
     container_name: kafka-connect-cdc
     depends_on:
       cdc-postgres:
+        condition: service_healthy
+      schema-registry:
         condition: service_healthy
     ports:
       - "8084:8083"
     environment:
       # Connect to Moose's Redpanda through the shared network
       BOOTSTRAP_SERVERS: redpanda:9092
+      ENABLE_APICURIO_CONVERTERS: "true"
       GROUP_ID: 1
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_statuses
-      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      # Use Apicurio JSON Schema converters with Schema Registry
+      KEY_CONVERTER: io.apicurio.registry.utils.converter.ExtJsonConverter
+      VALUE_CONVERTER: io.apicurio.registry.utils.converter.ExtJsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
+      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_URL": http://schema-registry:8080/apis/registry/v2
+      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_URL": http://schema-registry:8080/apis/registry/v2
+      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_AUTO-REGISTER": "true"
+      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_AUTO-REGISTER": "true"
+      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_FIND-LATEST": "true"
+      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_FIND-LATEST": "true"
+      CONNECT_KEY_CONVERTER_APICURIO_USE_ID: contentId
+      CONNECT_VALUE_CONVERTER_APICURIO_USE_ID: contentId
+      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_HEADERS_ENABLED: "false"
+      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_HEADERS_ENABLED: "false"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  # Apicurio Schema Registry for JSON Schema
+  schema-registry:
+    image: apicurio/apicurio-registry-mem:2.5.10.Final
+    container_name: schema-registry
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8080/apis/registry/v2/groups || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 volumes:
   cdc-postgres-data:

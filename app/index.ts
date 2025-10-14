@@ -4,12 +4,14 @@ import {
   Stream,
   ClickHouseEngines,
   UInt8,
+  cliLog,
+  UInt64,
 } from "@514labs/moose-lib";
 
-import { ShopServerPublicCustomerAddresses } from "./external-topics/externalTopics";
+import { cdcCustomerAddresses } from "./cdc-topics/externalTopics";
 
 interface CustomerAddress {
-  id: string;
+  id: UInt64;
   first_name: string;
   last_name: string;
   email: string;
@@ -26,24 +28,27 @@ interface IProcessedCustomerAddresses extends CustomerAddress {
 }
 
 interface IncomingCustomerAddressChangeEvent {
-  before: CustomerAddress | null;
-  after: CustomerAddress | null;
-  source: {
-    version: string;
-    connector: string;
-    name: string;
+  contentId: string;
+  payload: {
+    before: CustomerAddress | null;
+    after: CustomerAddress | null;
+    source: {
+      version: string;
+      connector: string;
+      name: string;
+      ts_ms: number;
+      snapshot: boolean;
+      db: string;
+      schema: string;
+      sequence: string[];
+      table: string;
+      txId: number;
+      lsn: number;
+      xmin: string | null;
+    };
+    op: "c" | "u" | "d" | "r";
     ts_ms: number;
-    snapshot: boolean;
-    db: string;
-    schema: string;
-    sequence: string[];
-    table: string;
-    txId: number;
-    lsn: number;
-    xmin: string | null;
   };
-  op: "c" | "u" | "d" | "r";
-  ts_ms: number;
 }
 
 const olapCustomerAddresses = new OlapTable<IProcessedCustomerAddresses>(
@@ -63,22 +68,29 @@ const ProcessedCustomerAddresses = new Stream<IProcessedCustomerAddresses>(
   }
 );
 
-ShopServerPublicCustomerAddresses.addTransform(
+cdcCustomerAddresses.addTransform(
   ProcessedCustomerAddresses,
   async (message) => {
-    const data = message as IncomingCustomerAddressChangeEvent;
-    if (data.op === "d") {
+    const { contentId, payload } =
+      message as IncomingCustomerAddressChangeEvent;
+
+    cliLog({
+      action: "cdcCustomerAddresses",
+      message: JSON.stringify(message),
+    });
+
+    if (payload.op === "d") {
       return {
-        ...data.before,
+        ...payload.before,
         _is_deleted: 1,
-        ts_ms: data.ts_ms,
+        ts_ms: payload.ts_ms,
       };
-    } else if (data.op === "c" || data.op === "u" || data.op === "r") {
+    } else if (payload.op === "c" || payload.op === "u" || payload.op === "r") {
       return {
-        ...data.after,
+        ...payload.after,
         _is_deleted: 0,
-        ts_ms: data.ts_ms,
+        ts_ms: payload.ts_ms,
       };
-    } else throw new Error(`Invalid operation: ${data.op}`);
+    } else throw new Error(`Invalid operation: ${payload.op}`);
   }
 );

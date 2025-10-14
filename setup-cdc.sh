@@ -73,85 +73,77 @@ fi
 # Wait for Kafka Connect to be ready
 wait_for_kafka_connect
 
-# Create sample table and data in PostgreSQL
-echo "📊 Creating sample table and data..."
-docker exec -i cdc-postgres psql -U postgres -d shop << 'EOF'
--- Create table if it doesn't exist
-CREATE TABLE IF NOT EXISTS customer_addresses (
-    id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    email VARCHAR(100),
-    res_address VARCHAR(200),
-    work_address VARCHAR(200),
-    country VARCHAR(50),
-    state VARCHAR(50),
-    phone_1 VARCHAR(20),
-    phone_2 VARCHAR(20)
-);
-
--- Only insert sample data if table is empty
-INSERT INTO customer_addresses (first_name, last_name, email, res_address, work_address, country, state, phone_1, phone_2) 
-SELECT * FROM (VALUES
-    ('John', 'Doe', 'john.doe@example.com', '123 Main St', '456 Work Ave', 'USA', 'California', '555-0101', '555-0102'),
-    ('Jane', 'Smith', 'jane.smith@example.com', '789 Oak St', '321 Business Blvd', 'USA', 'New York', '555-0201', '555-0202'),
-    ('Bob', 'Johnson', 'bob.johnson@example.com', '456 Pine St', '789 Corporate Dr', 'USA', 'Texas', '555-0301', '555-0302'),
-    ('Alice', 'Williams', 'alice.williams@example.com', '321 Elm St', '654 Office Way', 'USA', 'Florida', '555-0401', '555-0402'),
-    ('Charlie', 'Brown', 'charlie.brown@example.com', '654 Maple Ave', '987 Work Plaza', 'USA', 'Illinois', '555-0501', '555-0502')
-) AS new_data
-WHERE NOT EXISTS (SELECT 1 FROM customer_addresses LIMIT 1);
-
-SELECT COUNT(*) as total_records FROM customer_addresses;
-EOF
-
-# Check if connector already exists
-if curl -f http://localhost:8084/connectors/shop-server-connector >/dev/null 2>&1; then
-    echo "ℹ️  Connector already exists. Checking status..."
-    curl http://localhost:8084/connectors/shop-server-connector/status
+# Push database schema using Drizzle
+echo "📊 Setting up database schema with Drizzle..."
+if command -v pnpm &> /dev/null; then
+    pnpm db:push
 else
-    # Create Debezium connector
-    echo "🔌 Creating Debezium PostgreSQL connector..."
-    curl -X POST http://localhost:8084/connectors \
-      -H "Content-Type: application/json" \
-      -d '{
-        "name": "shop-server-connector",
-        "config": {
-          "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-          "database.hostname": "cdc-postgres",
-          "database.port": "5432",
-          "database.user": "postgres",
-          "database.password": "postgres",
-          "database.dbname": "shop",
-          "topic.prefix": "shop-server",
-          "table.include.list": "public.customer_addresses",
-          "plugin.name": "pgoutput",
-          "slot.name": "debezium_slot",
-          "publication.name": "dbz_publication"
-        }
-      }'
+    echo "⚠️  pnpm not found, using npm..."
+    npm run db:push
 fi
+
+# Seed initial data using Drizzle
+echo "🌱 Seeding initial data with Drizzle..."
+if command -v pnpm &> /dev/null; then
+    pnpm seed 5
+else
+    npm run seed 5
+fi
+
+# Ensure connector config exists
+if [ ! -f "postgres-connector.json" ]; then
+    echo "❌ postgres-connector.json not found in project root."
+    exit 1
+fi
+
+# Recreate connector from JSON to pick up changes
+if curl -f http://localhost:8084/connectors/postgres-connector >/dev/null 2>&1; then
+    echo "♻️  Deleting existing connector..."
+    curl -X DELETE http://localhost:8084/connectors/postgres-connector
+    sleep 2
+fi
+
+echo "🔌 Creating Debezium PostgreSQL connector from postgres-connector.json..."
+curl -X POST http://localhost:8084/connectors \
+  -H "Content-Type: application/json" \
+  --data-binary @postgres-connector.json
 
 echo ""
 echo "🎉 CDC Setup Complete!"
 echo ""
-echo "Your CDC services are now integrated with Moose using docker-compose.dev.override.yaml"
+echo "Your CDC pipeline is ready! Here's what was set up:"
+echo "  ✅ PostgreSQL database with customer_addresses table (via Drizzle)"
+echo "  ✅ 5 sample customers seeded (via Drizzle)"
+echo "  ✅ Debezium connector streaming to pg-cdc.public.customer_addresses"
+echo "  ✅ Apicurio Schema Registry with JSON Schema validation"
 echo ""
-echo "🔧 Available Commands:"
-echo "1. Check connector status:"
-echo "   curl http://localhost:8084/connectors/shop-server-connector/status"
+echo "🎨 Next Steps:"
+echo "1. Open Drizzle Studio to manage data visually:"
+echo "   pnpm db:studio"
+echo "   → Opens at http://localhost:4983"
 echo ""
-echo "2. Test CDC by modifying data:"
-echo "   docker exec -i cdc-postgres psql -U postgres -d shop -c \"INSERT INTO customer_addresses (first_name, last_name, email, country, state) VALUES ('Test', 'User', 'test@example.com', 'USA', 'Nevada');\""
+echo "2. Check your Moose terminal for CDC events!"
+echo "   Every change in Drizzle Studio triggers a CDC event"
 echo ""
-echo "3. Consume CDC events from Moose's Redpanda:"
-echo "   # From your Moose app's external topics configuration"
-echo "   # Topic: shop-server.public.customer_addresses"
+echo "3. Create more test data:"
+echo "   pnpm seed 10    # Add 10 random customers"
+echo "   pnpm list       # View all customers"
+echo "   pnpm clear      # Delete all customers"
 echo ""
-echo "📡 Services:"
-echo "- CDC PostgreSQL: localhost:5433 (user: postgres, password: postgres, db: shop)"
-echo "- Kafka Connect API: http://localhost:8084"
-echo "- Redpanda (Moose): localhost:19092"
+echo "🔧 Monitoring Commands:"
+echo "• Check connector status:"
+echo "  curl http://localhost:8084/connectors/postgres-connector/status"
 echo ""
-echo "ℹ️  Note: CDC services are managed by Moose dev server"
-echo "   - Start: moose dev (includes CDC services automatically)"
-echo "   - Stop: Ctrl+C in moose dev terminal"
+echo "• View CDC events in Kafka:"
+echo "  docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 5"
+echo ""
+echo "• Check Schema Registry:"
+echo "  curl http://localhost:8081/apis/registry/v2/search/artifacts"
+echo ""
+echo "📡 Services Running:"
+echo "  • Moose Dev:       http://localhost:4000 (check terminal for CDC events!)"
+echo "  • Drizzle Studio:  http://localhost:4983 (start with: pnpm db:studio)"
+echo "  • PostgreSQL:      localhost:5433"
+echo "  • Kafka Connect:   http://localhost:8084"
+echo "  • Schema Registry: http://localhost:8081"
+echo "  • Redpanda:        localhost:19092"

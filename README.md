@@ -1,212 +1,404 @@
-# Debezium CDC with Moose Integration
+# Debezium CDC with Moose & Drizzle
 
-A complete **Change Data Capture (CDC)** demo using Debezium, PostgreSQL, and Moose for real-time data streaming and analytics.
-
-<a href="https://docs.fiveonefour.com/moose"><img src="https://raw.githubusercontent.com/514-labs/moose/main/logo-m-light.png" alt="moose logo" height="100px"></a>
-
-[![NPM Version](https://img.shields.io/npm/v/%40514labs%2Fmoose-cli?logo=npm)](https://www.npmjs.com/package/@514labs/moose-cli?activeTab=readme)
-[![Moose Community](https://img.shields.io/badge/slack-moose_community-purple.svg?logo=slack)](https://join.slack.com/t/moose-community/shared_invite/zt-2fjh5n3wz-cnOmM9Xe9DYAgQrNu8xKxg)
+A complete **Change Data Capture (CDC)** demo showcasing real-time database change streaming using Debezium, PostgreSQL, Kafka/Redpanda, Moose, and Drizzle ORM with Apicurio Schema Registry for JSON Schema serialization.
 
 ## 🎯 What This Demo Does
 
-This project demonstrates how to:
+This project demonstrates a production-ready CDC pipeline:
 
-- **Capture database changes** in real-time using Debezium
-- **Stream changes** through Kafka to a Moose application
-- **Process and analyze** streaming data with ClickHouse
-- **Build APIs** that trigger CDC events automatically
+- 📊 **Capture database changes** in real-time using Debezium
+- 🔄 **Stream CDC events** through Kafka/Redpanda with JSON Schema validation
+- 📝 **Register schemas** automatically in Apicurio Schema Registry
+- 🚀 **Process events** with Moose for real-time analytics
+- 🎨 **Manage data visually** with Drizzle Studio GUI
+- 💾 **Store in ClickHouse** for analytics queries
 
 ## 🏗️ Architecture
 
 ```
-PostgreSQL → Debezium → Kafka Connect → Redpanda → Moose Kafka Consumer → ClickHouse
-     ↑                                                              ↓
-  REST API                                                    Analytics API
+┌─────────────────────┐
+│  Drizzle Studio     │  ← GUI for creating/editing/deleting records
+│  (localhost:4983)   │
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│   PostgreSQL DB     │  ← Source database (customer_addresses table)
+│   (localhost:5433)  │
+└──────────┬──────────┘
+           ↓ (Write-Ahead Log)
+┌─────────────────────┐
+│  Debezium Connector │  ← Captures INSERT/UPDATE/DELETE operations
+│  (Kafka Connect)    │
+└──────────┬──────────┘
+           ↓ (JSON Schema)
+┌─────────────────────┐
+│ Apicurio Registry   │  ← Stores JSON Schema definitions
+│ (localhost:8081)    │     Auto-registers key & value schemas
+└──────────┬──────────┘
+           ↓ (Serialized with schemaId)
+┌─────────────────────┐
+│ Redpanda (Kafka)    │  ← Message broker for CDC events
+│ (localhost:19092)   │     Topic: pg-cdc.public.customer_addresses
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│   Moose Framework   │  ← Consumes & processes CDC events
+│   (localhost:4000)  │     Check terminal for event logs!
+└──────────┬──────────┘
+           ↓
+┌─────────────────────┐
+│    ClickHouse       │  ← Analytics database for processed data
+│   (localhost:18123) │
+└─────────────────────┘
 ```
+
+### Key Components
+
+- **Drizzle Studio**: Visual database GUI - create, edit, delete records and immediately see CDC events
+- **Debezium**: Monitors PostgreSQL WAL and captures all changes as CDC events
+- **Apicurio Registry**: Schema registry that validates message structure using JSON Schema
+- **Redpanda**: Kafka-compatible broker that streams CDC events
+- **Moose**: Real-time data processing framework that consumes and transforms CDC events
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Docker & Docker Compose** (for CDC services)
-- **Node.js 16+** (for Moose and API)
+- **Docker & Docker Compose** (for running infrastructure)
+- **Node.js 16+** and **pnpm** (for Moose and Drizzle)
 - **Moose CLI**: `npm install -g @514labs/moose-cli`
 
-### 1. Clone and Setup
+### Step 1: Clone and Install
 
 ```bash
-git clone <your-repo-url>
+git clone okane16/debezium-cdc
 cd debezium-cdc
-npm install
+pnpm install
 ```
 
-### 2. Start Moose Infrastructure
+### Step 2: Start Moose Dev Server
 
 ```bash
-# Start Moose dev server (includes Redpanda, ClickHouse, etc.)
-moose dev
+pnpm dev
 ```
 
-**Keep this terminal open** - Moose dev server must stay running.
+**Keep this terminal open!** This command:
 
-### How CDC services integrate with Moose dev
+- ✅ Starts Moose's core infrastructure (Redpanda, ClickHouse)
+- ✅ Automatically loads CDC services from `docker-compose.dev.override.yaml`
+- ✅ Starts the Moose application that consumes CDC events
+- ✅ Runs `./setup-cdc.sh` automatically on first start (creates Debezium connector)
 
-- `docker-compose.dev.override.yaml` extends Moose's dev Docker Compose. When you run `moose dev`, Moose automatically picks up this override file and brings up the additional CDC services (PostgreSQL + Kafka Connect) on the same Docker network as Moose (no separate `docker compose up` needed).
-- The `on_first_start_script` setting in `moose.config.toml` is configured to run `./setup-cdc.sh` automatically the first time you start `moose dev`. This performs the one-time CDC initialization (topics, connector, sample data).
+You'll see logs like:
 
-### 3. Setup CDC Services
+```
+[cdcCustomerAddresses] Processing CDC event...
+```
 
-Moose will run `./setup-cdc.sh` automatically on the first `moose dev` start (via `on_first_start_script`). You usually don't need to run anything manually.
+**This is where you'll see CDC events in real-time!**
 
-If you want to re-run the CDC setup (e.g., after changes), use a **new terminal**:
+### Step 3: Open Drizzle Studio
+
+In a **new terminal**:
 
 ```bash
-chmod +x setup-cdc.sh
-./setup-cdc.sh
+pnpm db:studio
 ```
 
-This script will:
+Opens at **http://localhost:4983**
 
-- ✅ Start PostgreSQL with CDC configuration
-- ✅ Start Kafka Connect with Debezium
-- ✅ Create sample data
-- ✅ Configure the Debezium connector
-- ✅ Verify everything is working
+### Step 4: Test the CDC Pipeline
 
-### 4. Start the API Server
+Now test the complete pipeline:
 
-In a **third terminal**:
+1. **Open Drizzle Studio** (http://localhost:4983)
+2. **Click on `customer_addresses` table**
+3. **Click "Add Row"** and create a new customer
+4. **Watch your Moose terminal** - you'll see the CDC INSERT event appear!
+5. **Edit a field** in Drizzle Studio
+6. **Watch the Moose terminal again** - you'll see the CDC UPDATE event!
+
+**Example CDC event in Moose logs:**
+
+```json
+[cdcCustomerAddresses] {
+  "op": "c",
+  "after": {"id": 1, "first_name": "John", "last_name": "Doe", ...},
+  "source": {"version": "3.3.0.Final", "connector": "postgresql", ...}
+}
+```
+
+### Alternative: Generate Test Data via CLI
 
 ```bash
-cd api
-npm install
-npm run dev
+# Create 10 random customers (triggers 10 CDC INSERT events)
+pnpm seed
+
+# Create specific number
+pnpm seed 20
+
+# List all customers in terminal
+pnpm list
+
+# Clear all customers (triggers DELETE events)
+pnpm clear
 ```
 
-### 5. Test the Integration
+## 📊 Database Schema
 
-**Create a customer (triggers CDC):**
+**Table:** `customer_addresses`
+
+| Column         | Type         | Description                  |
+| -------------- | ------------ | ---------------------------- |
+| `id`           | SERIAL       | Primary key (auto-increment) |
+| `first_name`   | VARCHAR(100) | Customer first name          |
+| `last_name`    | VARCHAR(100) | Customer last name           |
+| `email`        | VARCHAR(255) | Email address                |
+| `res_address`  | TEXT         | Residential address          |
+| `work_address` | TEXT         | Work address                 |
+| `country`      | VARCHAR(100) | Country                      |
+| `state`        | VARCHAR(100) | State/Province               |
+| `phone_1`      | VARCHAR(20)  | Primary phone                |
+| `phone_2`      | VARCHAR(20)  | Secondary phone              |
+
+## 🛠️ Available Commands
+
+### Moose (Main Application)
+
+| Command               | Description               |
+| --------------------- | ------------------------- |
+| `pnpm dev`            | Start Moose dev server    |
+| `pnpm build`          | Build for production      |
+| `pnpm dev:pull:kafka` | Pull Kafka topics for CDC |
+
+### Database Management
+
+| Command            | Description                      |
+| ------------------ | -------------------------------- |
+| `pnpm db:studio`   | Open Drizzle Studio (visual GUI) |
+| `pnpm db:push`     | Push schema changes to database  |
+| `pnpm db:generate` | Generate migration files         |
+
+### Data Operations
+
+| Command         | Description                            |
+| --------------- | -------------------------------------- |
+| `pnpm seed [n]` | Create n random customers (default 10) |
+| `pnpm list`     | List all customers in terminal         |
+| `pnpm clear`    | Delete all customers                   |
+
+## 🔍 Monitoring CDC Events
+
+### View Events in Kafka
 
 ```bash
-curl -X POST http://localhost:3001/customers \
-  -H "Content-Type: application/json" \
-  -d '{
-    "firstName": "John",
-    "lastName": "Doe",
-    "email": "john@example.com",
-    "country": "USA",
-    "state": "California"
-  }'
+# List topics
+docker exec debezium-cdc-redpanda-1 rpk topic list
+
+# Consume CDC events
+docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 10
+
+# Consume from beginning
+docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --offset start
 ```
 
-**Check CDC events in Moose:**
+### Check Moose Logs
+
+The Moose dev server will log all incoming CDC events:
+
+```
+[cdcCustomerAddresses] {"op":"c","after":{...},"ts_ms":...}
+```
+
+### Query ClickHouse
 
 ```bash
-# View external topic configuration
-cat app/external-topics/externalTopics.ts
+# Connect to ClickHouse
+docker exec -it <clickhouse-container> clickhouse-client
 
-# Check Kafka topic
-docker exec debezium-cdc-redpanda-1 rpk topic consume shop-server.public.customer_addresses --num 1
+# Query processed data
+SELECT * FROM customer_addresses ORDER BY ts_ms DESC LIMIT 10;
 ```
 
-## 📊 Services Overview
+## 📁 Project Structure
 
-| Service           | URL                   | Description                     |
-| ----------------- | --------------------- | ------------------------------- |
-| **Moose Dev**     | http://localhost:4000 | Main Moose application          |
-| **API Server**    | http://localhost:3001 | REST API with Swagger docs      |
-| **Kafka Connect** | http://localhost:8084 | Debezium connector management   |
-| **PostgreSQL**    | localhost:5433        | CDC-enabled database            |
-| **ClickHouse**    | localhost:18123       | Analytics database              |
-| **Redpanda**      | localhost:19092       | Kafka-compatible message broker |
+```
+debezium-cdc/
+├── app/
+│   ├── db/
+│   │   ├── schema.ts          # Drizzle schema definition
+│   │   └── index.ts           # Database connection
+│   ├── cdc-topics/
+│   │   └── externalTopics.ts  # Kafka topic definitions
+│   ├── index.ts               # Moose CDC processing logic
+│   └── seed.ts                # Data seeding CLI
+├── drizzle.config.ts          # Drizzle Kit configuration
+├── docker-compose.yml         # Infrastructure services
+├── setup-cdc.sh               # CDC connector setup script
+├── package.json               # Dependencies & scripts
+└── tsconfig.json              # TypeScript configuration
+```
 
-## 🔧 Key Files
+## 🎨 Using Drizzle Studio (Visual Database GUI)
 
-- `setup-cdc.sh` - Automated CDC setup script
-- `docker-compose.dev.override.yaml` - Extends Moose dev's Docker Compose with CDC services
-- `app/external-topics/externalTopics.ts` - Moose external topic configuration
-- `api/` - REST API server with CDC integration
+**Drizzle Studio** is your visual interface for testing the CDC pipeline. Every change you make generates a CDC event that flows through the entire system!
 
-## 🧪 Testing CDC
-
-### 1. Create Data via API
+### Access
 
 ```bash
-curl -X POST http://localhost:3001/customers -H "Content-Type: application/json" -d '{"firstName": "Alice", "lastName": "Smith", "email": "alice@example.com", "country": "USA", "state": "Texas"}'
+pnpm db:studio
+# Opens at http://localhost:4983
 ```
 
-### 2. Update Data via API
+### How to Use Drizzle Studio
+
+1. **Browse Data**
+
+   - Click `customer_addresses` table to see all records
+   - Sort, filter, and paginate through data
+
+2. **Create Records** → Triggers CDC INSERT Events
+
+   - Click "Add Row" button
+   - Fill in customer details
+   - Save → **Check Moose terminal for INSERT event!**
+
+3. **Edit Records** → Triggers CDC UPDATE Events
+
+   - Click any cell to edit inline
+   - Change a value (e.g., state from "California" to "Texas")
+   - Save → **Check Moose terminal for UPDATE event!**
+
+4. **Delete Records** → Triggers CDC DELETE Events
+   - Select rows
+   - Click delete
+   - **Check Moose terminal for DELETE event!**
+
+### What You'll See
+
+**In Drizzle Studio:** Your database changes happen instantly
+
+**In Moose Terminal:** CDC events appear within seconds
+
+```
+[cdcCustomerAddresses] {"op":"c","after":{...}}  ← INSERT
+[cdcCustomerAddresses] {"op":"u","before":{...},"after":{...}}  ← UPDATE
+[cdcCustomerAddresses] {"op":"d","before":{...}}  ← DELETE
+```
+
+**In Kafka/Redpanda:** Events are stored with JSON Schema validation
 
 ```bash
-curl -X PUT http://localhost:3001/customers/1 -H "Content-Type: application/json" -d '{"state": "Nevada"}'
+docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 1
 ```
 
-### 3. Create Random Test Data
+**In Schema Registry:** Schemas are automatically registered
 
 ```bash
-curl -X POST http://localhost:3001/bulk-random/5
+curl http://localhost:8081/apis/registry/v2/search/artifacts
 ```
 
-### 4. Monitor Changes
+## 🧪 Testing the CDC Pipeline
 
-**Check database:**
+### 1. Create a Customer
 
 ```bash
-docker exec -i cdc-postgres psql -U postgres -d shop -c "SELECT * FROM customer_addresses ORDER BY id;"
+pnpm seed 1
 ```
 
-**Check CDC events:**
+**Expected Output:**
+
+```
+🌱 Seeding database with 1 random customers...
+✅ Created customer 1/1: John Smith (ID: 1)
+🔄 CDC events generated for 1 INSERT operations via Debezium
+```
+
+### 2. Monitor the Event Flow
+
+**In Moose logs:**
+
+```
+[cdcCustomerAddresses] {"op":"c","after":{"id":1,"first_name":"John",...}}
+```
+
+**In Kafka:**
 
 ```bash
-docker exec debezium-cdc-redpanda-1 rpk topic consume shop-server.public.customer_addresses --num 5
+docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 1
 ```
 
-**Check connector status:**
+### 3. Edit Data in Drizzle Studio
+
+1. Open http://localhost:4983
+2. Click on `customer_addresses` table
+3. Edit a field (e.g., change state to "Texas")
+4. See UPDATE event in Moose logs
+
+### 4. Delete a Customer
 
 ```bash
-curl http://localhost:8084/connectors/shop-server-connector/status
+pnpm clear
 ```
 
-## 🛠️ Development Workflow
+Watch DELETE events flow through the pipeline.
 
-### Starting Everything
+## 📡 Services & Ports
+
+| Service             | URL/Port              | Description                         |
+| ------------------- | --------------------- | ----------------------------------- |
+| **Moose Dev**       | http://localhost:4000 | Moose application (check terminal!) |
+| **Drizzle Studio**  | http://localhost:4983 | Visual database GUI                 |
+| **PostgreSQL**      | localhost:5433        | Source database                     |
+| **Kafka Connect**   | http://localhost:8084 | Debezium connector API              |
+| **Schema Registry** | http://localhost:8081 | Apicurio Registry (JSON Schema)     |
+| **Redpanda**        | localhost:19092       | Kafka-compatible message broker     |
+| **ClickHouse**      | localhost:18123       | Analytics database                  |
+
+## 🔧 Configuration
+
+### Database Connection
+
+Environment variables (or defaults in `app/db/index.ts`):
 
 ```bash
-# Terminal 1: Start Moose
-moose dev
-
-# Terminal 2: Setup CDC (one-time)
-./setup-cdc.sh
-
-# Terminal 3: Start API
-cd api && npm start
+DB_HOST=localhost
+DB_PORT=5433
+DB_NAME=shop
+DB_USER=postgres
+DB_PASSWORD=postgres
 ```
 
-### Stopping Everything
+### Debezium Connector
 
-```bash
-# Stop API: Ctrl+C in terminal 3
-# Stop Moose: Ctrl+C in terminal 1 (this stops CDC services too)
-```
+Configuration in `postgres-connector.json`:
 
-### Making Changes
+- **Connector name**: `postgres-connector`
+- **Topic prefix**: `pg-cdc`
+- **Table**: `public.customer_addresses`
+- **Kafka topic**: `pg-cdc.public.customer_addresses`
+- **Snapshot mode**: `initial` (takes initial snapshot + streams changes)
+- **Serialization**: JSON Schema with Apicurio Registry
 
-**Moose App Changes:**
+### Schema Registry
 
-- Edit files in `app/`
-- Moose dev server auto-reloads
+**Apicurio Registry** automatically registers JSON Schemas:
 
-**API Changes:**
+- Key schema: `pg-cdc.public.customer_addresses-key`
+- Value schema: `pg-cdc.public.customer_addresses-value`
 
-- Edit files in `api/`
-- Restart with `npm run dev` for auto-reload
+Each CDC event contains `schemaId` for validation.
 
-**CDC Configuration Changes:**
+### Moose Processing
 
-- Edit `docker-compose.dev.override.yaml`
-- Re-run `./setup-cdc.sh`
+Logic in `app/index.ts`:
 
-## 🚨 Troubleshooting
+- Consumes CDC events from Kafka topic
+- Deserializes JSON Schema messages
+- Transforms events (handles INSERT, UPDATE, DELETE)
+- Writes to ClickHouse for analytics
+
+## 🐛 Troubleshooting
 
 ### "Permission denied" on setup-cdc.sh
 
@@ -214,79 +406,47 @@ cd api && npm start
 chmod +x setup-cdc.sh
 ```
 
-### Kafka Connect fails to start
-
-The setup script automatically fixes common issues, but if you see errors:
-
-1. **Check Moose is running:**
-
-   ```bash
-   curl http://localhost:19092  # Should connect
-   ```
-
-2. **Check topic configurations:**
-
-   ```bash
-   docker exec debezium-cdc-redpanda-1 rpk topic list
-   ```
-
-3. **Restart CDC services:**
-   ```bash
-   docker restart kafka-connect-cdc
-   ```
-
-### API can't connect to database
+### Moose won't start / Docker services not starting
 
 ```bash
-# Check PostgreSQL is running
-docker ps | grep cdc-postgres
+# Stop everything cleanly
+docker stop $(docker ps -aq)
 
-# Check database connectivity
-docker exec -i cdc-postgres psql -U postgres -d shop -c "SELECT 1;"
+# Restart Moose (this will recreate all CDC services)
+pnpm dev
 ```
 
-### CDC events not appearing
+### CDC events not appearing in Moose terminal
 
-```bash
-# Check connector status
-curl http://localhost:8084/connectors/shop-server-connector/status
+1. **Check connector status:**
 
-# Check if connector is running
-curl http://localhost:8084/connectors
+   ```bash
+   curl http://localhost:8084/connectors/postgres-connector/status
+   ```
 
-# Restart connector if needed
-curl -X POST http://localhost:8084/connectors/shop-server-connector/restart
-```
+   Should show `"state": "RUNNING"` for both connector and tasks.
 
-### "No space left on device" in ClickHouse
+2. **Check if events are in Kafka:**
 
-This means your Docker environment is out of disk space:
+   ```bash
+   docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 1
+   ```
 
-- Clean up unused Docker images: `docker system prune -a`
-- Increase Docker Desktop disk allocation
-- Check available space: `df -h`
+3. **Verify Moose external topic config:**
 
-## 📚 Learn More
+   ```bash
+   cat app/cdc-topics/externalTopics.ts
+   ```
 
-- **[Moose Documentation](https://docs.fiveonefour.com/moose)** - Learn about Moose framework
-- **[Debezium Documentation](https://debezium.io/documentation/)** - CDC connector details
-- **[API Documentation](./api/README.md)** - REST API details
+4. **Restart connector if needed:**
+   ```bash
+   curl -X DELETE http://localhost:8084/connectors/postgres-connector
+   ./setup-cdc.sh
+   ```
 
-## 🤝 Community
+## 📚 Resources
 
-- **[Moose Slack](https://join.slack.com/t/moose-community/shared_invite/zt-2fjh5n3wz-cnOmM9Xe9DYAgQrNu8xKxg)** - Join the community
-- **[GitHub](https://github.com/514-labs/moose)** - Moose source code
-
----
-
-## 💡 What's Happening Under the Hood
-
-1. **Moose dev** starts ClickHouse, Redpanda, and other core services
-2. **setup-cdc.sh** adds PostgreSQL and Kafka Connect to the mix
-3. **Debezium** monitors PostgreSQL's Write-Ahead Log (WAL) for changes
-4. **Changes** are streamed to Redpanda as structured JSON events
-5. **Moose** consumes these events via external topics configuration
-6. **ClickHouse** stores the data for analytics queries
-7. **API** provides an easy way to create test data and trigger CDC events
-
-This creates a complete real-time data pipeline from operational database changes to analytics-ready data!
+- [Debezium Documentation](https://debezium.io/)
+- [Moose Documentation](https://docs.moosejs.com/)
+- [Drizzle ORM Documentation](https://orm.drizzle.team/)
+- [Redpanda Documentation](https://docs.redpanda.com/)

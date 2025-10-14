@@ -15,6 +15,10 @@
         "transform": "typia/lib/transform"
       }
     ],
-    "strictNullChecks": true
-  }
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node"
+  },
+  "include": ["app/**/*.ts", "drizzle.config.ts"],
+  "exclude": ["node_modules", "dist", "drizzle"]
 }
