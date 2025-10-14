@@ -85,9 +85,9 @@ fi
 # Seed initial data using Drizzle
 echo "🌱 Seeding initial data with Drizzle..."
 if command -v pnpm &> /dev/null; then
-    pnpm seed 5
+    pnpm db:seed 1000
 else
-    npm run seed 5
+    npm run db:seed 1000
 fi
 
 # Ensure connector config exists
@@ -126,9 +126,9 @@ echo "2. Check your Moose terminal for CDC events!"
 echo "   Every change in Drizzle Studio triggers a CDC event"
 echo ""
 echo "3. Create more test data:"
-echo "   pnpm seed 10    # Add 10 random customers"
-echo "   pnpm list       # View all customers"
-echo "   pnpm clear      # Delete all customers"
+echo "   pnpm db:seed 100000    # Add 100,000 random customers"
+echo "   pnpm db:list       # View all customers"
+echo "   pnpm db:clear      # Delete all customers"
 echo ""
 echo "🔧 Monitoring Commands:"
 echo "• Check connector status:"

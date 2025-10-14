@@ -105,13 +105,13 @@ In a **new terminal**:
 pnpm db:studio
 ```
 
-Opens at **http://localhost:4983**
+Opens at **http://local.drizzle.studio/**
 
 ### Step 4: Test the CDC Pipeline
 
 Now test the complete pipeline:
 
-1. **Open Drizzle Studio** (http://localhost:4983)
+1. **Open Drizzle Studio** (http://local.drizzle.studio/)
 2. **Click on `customer_addresses` table**
 3. **Click "Add Row"** and create a new customer
 4. **Watch your Moose terminal** - you'll see the CDC INSERT event appear!
@@ -284,9 +284,9 @@ pnpm db:studio
 **In Moose Terminal:** CDC events appear within seconds
 
 ```
-[cdcCustomerAddresses] {"op":"c","after":{...}}  ← INSERT
-[cdcCustomerAddresses] {"op":"u","before":{...},"after":{...}}  ← UPDATE
-[cdcCustomerAddresses] {"op":"d","before":{...}}  ← DELETE
+[cdcCustomerAddresses] {"op":"c","before":null,"after":{...}}  ← INSERT
+[cdcCustomerAddresses] {"op":"u","before":null,"after":{...}}  ← UPDATE
+[cdcCustomerAddresses] {"op":"d","before":{...},"after":null}  ← DELETE
 ```
 
 **In Kafka/Redpanda:** Events are stored with JSON Schema validation
