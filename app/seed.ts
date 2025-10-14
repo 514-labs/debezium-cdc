@@ -1,145 +1,80 @@
 import { db, pool } from "./db";
 import { customerAddresses } from "./db/schema";
 import { sql } from "drizzle-orm";
-
-// Sample data for random generation
-const firstNames = [
-  "John",
-  "Jane",
-  "Bob",
-  "Alice",
-  "Charlie",
-  "Sarah",
-  "Mike",
-  "Emma",
-  "David",
-  "Lisa",
-  "Tom",
-  "Maria",
-  "James",
-  "Anna",
-  "Chris",
-];
-const lastNames = [
-  "Smith",
-  "Johnson",
-  "Williams",
-  "Brown",
-  "Jones",
-  "Garcia",
-  "Miller",
-  "Davis",
-  "Rodriguez",
-  "Martinez",
-];
-const domains = [
-  "example.com",
-  "test.com",
-  "demo.com",
-  "sample.org",
-  "mock.net",
-];
-const streets = [
-  "Main St",
-  "Oak Ave",
-  "Pine Rd",
-  "Elm St",
-  "Maple Dr",
-  "Cedar Ln",
-  "Park Ave",
-];
-const states = [
-  "California",
-  "New York",
-  "Texas",
-  "Florida",
-  "Illinois",
-  "Pennsylvania",
-  "Ohio",
-];
-const countries = [
-  "USA",
-  "Canada",
-  "Mexico",
-  "UK",
-  "Germany",
-  "France",
-  "Spain",
-  "Italy",
-];
-
-// Helper functions
-const getRandomElement = <T>(array: T[]): T =>
-  array[Math.floor(Math.random() * array.length)];
-const getRandomNumber = (min: number, max: number): number =>
-  Math.floor(Math.random() * (max - min + 1)) + min;
-const getRandomPhone = (): string =>
-  `${getRandomNumber(100, 999)}-${getRandomNumber(100, 999)}-${getRandomNumber(
-    1000,
-    9999
-  )}`;
+import { faker } from "@faker-js/faker";
 
 const generateRandomCustomer = () => {
-  const firstName = getRandomElement(firstNames);
-  const lastName = getRandomElement(lastNames);
-  const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${getRandomElement(
-    domains
-  )}`;
-  const resAddress = `${getRandomNumber(100, 9999)} ${getRandomElement(
-    streets
-  )}`;
-  const workAddress = `${getRandomNumber(100, 9999)} ${getRandomElement(
-    streets
-  )}`;
-  const country = getRandomElement(countries);
-  const state = getRandomElement(states);
-  const phone1 = getRandomPhone();
-  const phone2 = getRandomPhone();
-
+  const first_name = faker.person.firstName();
+  const last_name = faker.person.lastName();
   return {
-    first_name: firstName,
-    last_name: lastName,
-    email,
-    res_address: resAddress,
-    work_address: workAddress,
-    country,
-    state,
-    phone_1: phone1,
-    phone_2: phone2,
+    first_name: first_name,
+    last_name: last_name,
+    email: faker.internet.email({
+      firstName: first_name,
+      lastName: last_name,
+    }),
+    res_address: faker.location.streetAddress(),
+    work_address: faker.location.streetAddress(),
+    country: faker.location.country(),
+    state: faker.location.state(),
+    phone_1: faker.phone.number({ style: "national" }),
+    phone_2: faker.phone.number({ style: "national" }),
   };
 };
 
-async function seedDatabase(count: number = 10) {
+async function seedDatabase(count: number = 10000) {
+  const BATCH_SIZE = 1000;
   console.log(`🌱 Seeding database with ${count} random customers...`);
+  console.log(`📦 Using batch size: ${BATCH_SIZE}`);
 
   try {
     // Check current count
     const currentCount = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(customerAddresses);
-    console.log(`📊 Current customer count: ${currentCount[0].count}`);
+    console.log(`📊 Current customer count: ${currentCount[0].count}\n`);
 
-    // Insert random customers
-    for (let i = 0; i < count; i++) {
-      const customer = generateRandomCustomer();
-      const result = await db
-        .insert(customerAddresses)
-        .values(customer)
-        .returning();
+    const startTime = Date.now();
+    let insertedCount = 0;
+
+    // Insert in batches for better performance
+    for (let i = 0; i < count; i += BATCH_SIZE) {
+      const batchSize = Math.min(BATCH_SIZE, count - i);
+
+      // Generate batch of customers
+      const customers = Array.from({ length: batchSize }, () =>
+        generateRandomCustomer()
+      );
+
+      // Insert entire batch at once
+      await db.insert(customerAddresses).values(customers);
+
+      insertedCount += batchSize;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      const rate = ((insertedCount / (Date.now() - startTime)) * 1000).toFixed(
+        0
+      );
 
       console.log(
-        `✅ Created customer ${i + 1}/${count}: ${result[0].first_name} ${
-          result[0].last_name
-        } (ID: ${result[0].id})`
+        `✅ Progress: ${insertedCount}/${count} (${(
+          (insertedCount / count) *
+          100
+        ).toFixed(1)}%) | ${elapsed}s elapsed | ${rate} records/sec`
       );
     }
 
-    // Show final count
+    // Show final count and stats
     const finalCount = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(customerAddresses);
+    const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const avgRate = ((count / (Date.now() - startTime)) * 1000).toFixed(0);
+
     console.log(
       `\n✨ Seeding complete! Total customers: ${finalCount[0].count}`
+    );
+    console.log(
+      `⏱️  Total time: ${totalTime}s | Average: ${avgRate} records/sec`
     );
     console.log(
       `🔄 CDC events generated for ${count} INSERT operations via Debezium`
@@ -223,14 +158,15 @@ switch (command) {
     console.log("🛠️  CDC Database Seeding Tool\n");
     console.log("Usage:");
     console.log(
-      "  pnpm seed [count]     - Seed database with random customers (default: 10)"
+      "  pnpm db:seed [count]  - Seed database with random customers (default: 10)"
     );
-    console.log("  pnpm list             - List all customers");
-    console.log("  pnpm clear            - Clear all customers");
+    console.log("  pnpm db:list          - List all customers");
+    console.log("  pnpm db:clear         - Clear all customers");
     console.log("\nExamples:");
-    console.log("  pnpm seed 5           - Create 5 random customers");
-    console.log("  pnpm list             - View all customers");
-    console.log("  pnpm clear            - Delete all customers");
+    console.log("  pnpm db:seed 5        - Create 5 random customers");
+    console.log("  pnpm db:seed 100000   - Create 100k customers (batched)");
+    console.log("  pnpm db:list          - View all customers");
+    console.log("  pnpm db:clear         - Delete all customers");
     console.log(
       "\n💡 Use 'pnpm db:studio' to open Drizzle Studio for visual database management"
     );

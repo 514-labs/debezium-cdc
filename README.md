@@ -132,16 +132,19 @@ Now test the complete pipeline:
 
 ```bash
 # Create 10 random customers (triggers 10 CDC INSERT events)
-pnpm seed
+pnpm db:seed
 
 # Create specific number
-pnpm seed 20
+pnpm db:seed 20
+
+# Create large dataset (uses batch inserts)
+pnpm db:seed 100000
 
 # List all customers in terminal
-pnpm list
+pnpm db:list
 
 # Clear all customers (triggers DELETE events)
-pnpm clear
+pnpm db:clear
 ```
 
 ## 📊 Database Schema
@@ -181,11 +184,11 @@ pnpm clear
 
 ### Data Operations
 
-| Command         | Description                            |
-| --------------- | -------------------------------------- |
-| `pnpm seed [n]` | Create n random customers (default 10) |
-| `pnpm list`     | List all customers in terminal         |
-| `pnpm clear`    | Delete all customers                   |
+| Command            | Description                            |
+| ------------------ | -------------------------------------- |
+| `pnpm db:seed [n]` | Create n random customers (default 10) |
+| `pnpm db:list`     | List all customers in terminal         |
+| `pnpm db:clear`    | Delete all customers                   |
 
 ## 🔍 Monitoring CDC Events
 
@@ -247,7 +250,7 @@ debezium-cdc/
 
 ```bash
 pnpm db:studio
-# Opens at http://localhost:4983
+# Opens at http://local.drizzle.studio/
 ```
 
 ### How to Use Drizzle Studio
@@ -304,14 +307,15 @@ curl http://localhost:8081/apis/registry/v2/search/artifacts
 
 ```bash
 pnpm seed 1
-```
 
 **Expected Output:**
 
 ```
+
 🌱 Seeding database with 1 random customers...
 ✅ Created customer 1/1: John Smith (ID: 1)
 🔄 CDC events generated for 1 INSERT operations via Debezium
+
 ```
 
 ### 2. Monitor the Event Flow
@@ -319,14 +323,16 @@ pnpm seed 1
 **In Moose logs:**
 
 ```
+
 [cdcCustomerAddresses] {"op":"c","after":{"id":1,"first_name":"John",...}}
-```
+
+````
 
 **In Kafka:**
 
 ```bash
 docker exec debezium-cdc-redpanda-1 rpk topic consume pg-cdc.public.customer_addresses --num 1
-```
+````
 
 ### 3. Edit Data in Drizzle Studio
 

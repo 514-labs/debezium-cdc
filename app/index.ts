@@ -51,10 +51,22 @@ interface IncomingCustomerAddressChangeEvent {
   };
 }
 
+type GenericCDCEvent<T> = {
+  contentId: string;
+  payload: {
+    before: T | null;
+    after: T | null;
+    op: "c" | "u" | "d" | "r";
+    ts_ms: number;
+  };
+};
+
+type CustomerAddressChangeEvent = GenericCDCEvent<CustomerAddress>;
+
 const olapCustomerAddresses = new OlapTable<IProcessedCustomerAddresses>(
   "customer_addresses",
   {
-    engine: ClickHouseEngines.ReplicatedReplacingMergeTree,
+    engine: ClickHouseEngines.ReplacingMergeTree,
     ver: "ts_ms",
     isDeleted: "_is_deleted",
     orderByFields: ["id", "ts_ms"],
@@ -68,29 +80,35 @@ const ProcessedCustomerAddresses = new Stream<IProcessedCustomerAddresses>(
   }
 );
 
+function handleCDCPayload(event: GenericCDCEvent<any>) {
+  if (event.payload.op === "d") {
+    return {
+      ...event.payload.before,
+      _is_deleted: 1,
+      ts_ms: event.payload.ts_ms,
+    };
+  } else if (
+    event.payload.op === "c" ||
+    event.payload.op === "u" ||
+    event.payload.op === "r"
+  ) {
+    return {
+      ...event.payload.after,
+      _is_deleted: 0,
+      ts_ms: event.payload.ts_ms,
+    };
+  } else throw new Error(`Invalid operation: ${event.payload.op}`);
+}
+
 cdcCustomerAddresses.addTransform(
   ProcessedCustomerAddresses,
   async (message) => {
-    const { contentId, payload } =
-      message as IncomingCustomerAddressChangeEvent;
-
     cliLog({
       action: "cdcCustomerAddresses",
       message: JSON.stringify(message),
     });
 
-    if (payload.op === "d") {
-      return {
-        ...payload.before,
-        _is_deleted: 1,
-        ts_ms: payload.ts_ms,
-      };
-    } else if (payload.op === "c" || payload.op === "u" || payload.op === "r") {
-      return {
-        ...payload.after,
-        _is_deleted: 0,
-        ts_ms: payload.ts_ms,
-      };
-    } else throw new Error(`Invalid operation: ${payload.op}`);
+    const result = handleCDCPayload(message as CustomerAddressChangeEvent);
+    return result as IProcessedCustomerAddresses;
   }
 );

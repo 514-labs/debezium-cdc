@@ -33,6 +33,9 @@ importers:
       '@514labs/moose-cli':
         specifier: ^0.6.128
         version: 0.6.128
+      '@faker-js/faker':
+        specifier: ^10.0.0
+        version: 10.0.0
       '@types/node':
         specifier: ^20.12.12
         version: 20.19.21
@@ -395,6 +398,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@faker-js/faker@10.0.0':
+    resolution: {integrity: sha512-UollFEUkVXutsaP+Vndjxar40Gs5JL2HeLcl8xO1QAjJgOdhc3OmBFWyEylS+RddWaaBiAzH+5/17PLQJwDiLw==}
+    engines: {node: ^20.19.0 || ^22.13.0 || ^23.5.0 || >=24.0.0, npm: '>=10'}
 
   '@grpc/grpc-js@1.14.0':
     resolution: {integrity: sha512-N8Jx6PaYzcTRNzirReJCtADVoq4z7+1KQ4E70jTg/koQiMoUSN1kbNjPOqpPbhMFhfU1/l7ixspPl8dNY+FoUg==}
@@ -2109,6 +2116,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.10':
     optional: true
+
+  '@faker-js/faker@10.0.0': {}
 
   '@grpc/grpc-js@1.14.0':
     dependencies:
