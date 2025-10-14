@@ -49,12 +49,18 @@ moose dev
 
 **Keep this terminal open** - Moose dev server must stay running.
 
+### How CDC services integrate with Moose dev
+
+- `docker-compose.dev.override.yaml` extends Moose's dev Docker Compose. When you run `moose dev`, Moose automatically picks up this override file and brings up the additional CDC services (PostgreSQL + Kafka Connect) on the same Docker network as Moose (no separate `docker compose up` needed).
+- The `on_first_start_script` setting in `moose.config.toml` is configured to run `./setup-cdc.sh` automatically the first time you start `moose dev`. This performs the one-time CDC initialization (topics, connector, sample data).
+
 ### 3. Setup CDC Services
 
-In a **new terminal**:
+Moose will run `./setup-cdc.sh` automatically on the first `moose dev` start (via `on_first_start_script`). You usually don't need to run anything manually.
+
+If you want to re-run the CDC setup (e.g., after changes), use a **new terminal**:
 
 ```bash
-# Make setup script executable and run it
 chmod +x setup-cdc.sh
 ./setup-cdc.sh
 ```
@@ -74,16 +80,10 @@ In a **third terminal**:
 ```bash
 cd api
 npm install
-npm start
+npm run dev
 ```
 
 ### 5. Test the Integration
-
-**View API Documentation:**
-
-```bash
-open http://localhost:3001/api-docs
-```
 
 **Create a customer (triggers CDC):**
 
@@ -123,7 +123,7 @@ docker exec debezium-cdc-redpanda-1 rpk topic consume shop-server.public.custome
 ## 🔧 Key Files
 
 - `setup-cdc.sh` - Automated CDC setup script
-- `docker-compose.dev.override.yaml` - CDC services configuration
+- `docker-compose.dev.override.yaml` - Extends Moose dev's Docker Compose with CDC services
 - `app/external-topics/externalTopics.ts` - Moose external topic configuration
 - `api/` - REST API server with CDC integration
 
