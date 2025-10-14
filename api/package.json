@@ -1,0 +1,22 @@
+{
+  "name": "cdc-api",
+  "version": "1.0.0",
+  "description": "API to randomly create or update records in CDC PostgreSQL table",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pg": "^8.11.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/http-errors": "^2.0.5",
+    "@types/node": "^24.7.2",
+    "nodemon": "^3.0.1"
+  }
+}

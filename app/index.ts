@@ -1,25 +1,84 @@
-// Welcome to your new Moose analytical backend! 🦌
+import {
+  LowCardinality,
+  OlapTable,
+  Stream,
+  ClickHouseEngines,
+  UInt8,
+} from "@514labs/moose-lib";
 
-// Getting Started Guide:
+import { ShopServerPublicCustomerAddresses } from "./external-topics/externalTopics";
 
-// 1. Data Modeling
-// First, plan your data structure and create your data models
-// → See: docs.fiveonefour.com/moose/building/data-modeling
-//   Learn about type definitions and data validation
+interface CustomerAddress {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  res_address: string;
+  work_address: string;
+  country: string & LowCardinality;
+  state: string & LowCardinality;
+  phone_1: string;
+  phone_2: string;
+}
+interface IProcessedCustomerAddresses extends CustomerAddress {
+  _is_deleted: UInt8;
+  ts_ms: number;
+}
 
-// 2. Set Up Ingestion
-// Create ingestion pipelines to receive your data via REST APIs
-// → See: docs.fiveonefour.com/moose/building/ingestion
-//   Learn about IngestPipeline, data formats, and validation
+interface IncomingCustomerAddressChangeEvent {
+  before: CustomerAddress | null;
+  after: CustomerAddress | null;
+  source: {
+    version: string;
+    connector: string;
+    name: string;
+    ts_ms: number;
+    snapshot: boolean;
+    db: string;
+    schema: string;
+    sequence: string[];
+    table: string;
+    txId: number;
+    lsn: number;
+    xmin: string | null;
+  };
+  op: "c" | "u" | "d" | "r";
+  ts_ms: number;
+}
 
-// 3. Create Workflows
-// Build data processing pipelines to transform and analyze your data
-// → See: docs.fiveonefour.com/moose/building/workflows
-//   Learn about task scheduling and data processing
+const olapCustomerAddresses = new OlapTable<IProcessedCustomerAddresses>(
+  "customer_addresses",
+  {
+    engine: ClickHouseEngines.ReplicatedReplacingMergeTree,
+    ver: "ts_ms",
+    isDeleted: "_is_deleted",
+    orderByFields: ["id", "ts_ms"],
+  }
+);
 
-// 4. Configure Consumption APIs
-// Set up queries and real-time analytics for your data
-// → See: docs.fiveonefour.com/moose/building/consumption-apis
+const ProcessedCustomerAddresses = new Stream<IProcessedCustomerAddresses>(
+  "ProcessedCustomerAddresses",
+  {
+    destination: olapCustomerAddresses,
+  }
+);
 
-// Need help? Check out the quickstart guide:
-// → docs.fiveonefour.com/moose/getting-started/quickstart
+ShopServerPublicCustomerAddresses.addTransform(
+  ProcessedCustomerAddresses,
+  async (message) => {
+    const data = message as IncomingCustomerAddressChangeEvent;
+    if (data.op === "d") {
+      return {
+        ...data.before,
+        _is_deleted: 1,
+        ts_ms: data.ts_ms,
+      };
+    } else if (data.op === "c" || data.op === "u" || data.op === "r") {
+      return {
+        ...data.after,
+        _is_deleted: 0,
+        ts_ms: data.ts_ms,
+      };
+    } else throw new Error(`Invalid operation: ${data.op}`);
+  }
+);
