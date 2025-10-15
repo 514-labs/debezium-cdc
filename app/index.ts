@@ -6,11 +6,32 @@ import {
   UInt8,
   cliLog,
   UInt64,
+  DateTime,
 } from "@514labs/moose-lib";
+
+import { CustomerAddress, AnotherTable } from "./db/schema";
 
 import { cdcCustomerAddresses } from "./cdc-topics/externalTopics";
 
-interface CustomerAddress {
+type CdcFields = {
+  _is_deleted: UInt8;
+  ts_ms: UInt64;
+};
+
+type OlapAnotherTable = Omit<AnotherTable, "id" | "random_number"> &
+  CdcFields & {
+    id: UInt64;
+    random_number: UInt64;
+  };
+
+type OlapCustomerAddress = Omit<CustomerAddress, "id" | "country" | "state"> &
+  CdcFields & {
+    id: UInt64;
+    country: string & LowCardinality;
+    state: string & LowCardinality;
+  };
+
+interface ICustomerAddress {
   id: UInt64;
   first_name: string;
   last_name: string;
@@ -21,34 +42,8 @@ interface CustomerAddress {
   state: string & LowCardinality;
   phone_1: string;
   phone_2: string;
-}
-interface IProcessedCustomerAddresses extends CustomerAddress {
   _is_deleted: UInt8;
-  ts_ms: number;
-}
-
-interface IncomingCustomerAddressChangeEvent {
-  contentId: string;
-  payload: {
-    before: CustomerAddress | null;
-    after: CustomerAddress | null;
-    source: {
-      version: string;
-      connector: string;
-      name: string;
-      ts_ms: number;
-      snapshot: boolean;
-      db: string;
-      schema: string;
-      sequence: string[];
-      table: string;
-      txId: number;
-      lsn: number;
-      xmin: string | null;
-    };
-    op: "c" | "u" | "d" | "r";
-    ts_ms: number;
-  };
+  ts_ms: UInt64;
 }
 
 type GenericCDCEvent<T> = {
@@ -62,18 +57,26 @@ type GenericCDCEvent<T> = {
 };
 
 type CustomerAddressChangeEvent = GenericCDCEvent<CustomerAddress>;
+type AnotherTableChangeEvent = GenericCDCEvent<AnotherTable>;
 
-const olapCustomerAddresses = new OlapTable<IProcessedCustomerAddresses>(
+// const olapAnotherTable = new OlapTable<OlapAnotherTable>("another_table", {
+//   engine: ClickHouseEngines.ReplacingMergeTree,
+//   ver: "ts_ms",
+//   isDeleted: "_is_deleted",
+//   orderByFields: ["id"],
+// });
+
+const olapCustomerAddresses = new OlapTable<ICustomerAddress>(
   "customer_addresses",
   {
     engine: ClickHouseEngines.ReplacingMergeTree,
     ver: "ts_ms",
     isDeleted: "_is_deleted",
-    orderByFields: ["id", "ts_ms"],
+    orderByFields: ["id"],
   }
 );
 
-const ProcessedCustomerAddresses = new Stream<IProcessedCustomerAddresses>(
+const ProcessedCustomerAddresses = new Stream<ICustomerAddress>(
   "ProcessedCustomerAddresses",
   {
     destination: olapCustomerAddresses,
@@ -109,6 +112,6 @@ cdcCustomerAddresses.addTransform(
     });
 
     const result = handleCDCPayload(message as CustomerAddressChangeEvent);
-    return result as IProcessedCustomerAddresses;
+    return result as ICustomerAddress;
   }
 );
