@@ -59,12 +59,12 @@ type GenericCDCEvent<T> = {
 type CustomerAddressChangeEvent = GenericCDCEvent<CustomerAddress>;
 type AnotherTableChangeEvent = GenericCDCEvent<AnotherTable>;
 
-// const olapAnotherTable = new OlapTable<OlapAnotherTable>("another_table", {
-//   engine: ClickHouseEngines.ReplacingMergeTree,
-//   ver: "ts_ms",
-//   isDeleted: "_is_deleted",
-//   orderByFields: ["id"],
-// });
+const olapAnotherTable = new OlapTable<OlapAnotherTable>("another_table", {
+  engine: ClickHouseEngines.ReplacingMergeTree,
+  ver: "ts_ms",
+  isDeleted: "_is_deleted",
+  orderByFields: ["id"],
+});
 
 const olapCustomerAddresses = new OlapTable<ICustomerAddress>(
   "customer_addresses",
