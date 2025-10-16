@@ -15,30 +15,44 @@ export function handleCDCPayload<T>(event: GenericCDCEvent<T>): T & CdcFields {
   });
 
   cliLog({
-    action: "CDC Payload",
-    message: `PAYLOAD: ${JSON.stringify(event.payload)}`,
+    action: "Raw Payload",
+    message: JSON.stringify(event.payload),
   });
 
+  let result = {} as T & CdcFields;
   if (event.payload.op === "d") {
     // Soft delete: keep the record but mark it deleted
-    return {
+    result = {
       ...event.payload.before!,
       _is_deleted: 1,
       ts_ms: event.payload.ts_ms,
       lsn: event.payload.source.lsn,
     };
-  } else if (
+  }
+
+  if (
     event.payload.op === "c" || // create
     event.payload.op === "u" || // update
     event.payload.op === "r" // read (snapshot)
   ) {
-    return {
+    result = {
       ...event.payload.after!,
       _is_deleted: 0,
       ts_ms: event.payload.ts_ms,
       lsn: event.payload.source.lsn,
     };
-  } else {
+  }
+
+  if (!result) {
     throw new Error(`Unexpected CDC operation: ${event.payload.op}`);
   }
+
+  cliLog({
+    action: "Result",
+    message: `Operation: ${event.payload.op} | Result: ${JSON.stringify(
+      result
+    )}`,
+  });
+
+  return result;
 }

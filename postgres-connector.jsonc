@@ -1,0 +1,52 @@
+// NOTE: This file is for humans. Kafka Connect/Debezium expects plain JSON and
+// will NOT accept comments. The actual configuration used by setup-cdc.sh is
+// in `postgres-connector.json` (without comments).
+//
+// Most important fields to tweak for your environment:
+// - topic.prefix: Prefix for all emitted Kafka topics
+//   Example final topics: <topic.prefix>.public.customer_addresses
+// - table.include.list: Which tables to capture (comma-separated, schema-qualified patterns)
+//   Examples: "public.*" (all tables in public), "public.customer_addresses,public.another_table"
+//
+// Other common knobs:
+// - snapshot.mode: initial | initial_only | never (controls initial snapshot)
+// - tombstones.on.delete: false (avoid tombstone records for deletes)
+// - skipped.operations: include 't' to skip TRUNCATE events
+// - database.*: connection and credentials for the source Postgres
+
+{
+  "name": "postgres-connector",
+  "config": {
+    // Core connector type
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+
+    // Source Postgres connection (matches docker-compose.dev.override.yaml)
+    "database.hostname": "cdc-postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "postgres",
+    "database.dbname": "test-db",
+
+    // IMPORTANT: Kafka topic prefix used for all emitted topics
+    // Final topics look like: <topic.prefix>.public.<table>
+    "topic.prefix": "pg-cdc",
+
+    // IMPORTANT: Which tables to capture
+    // Use schema-qualified names, comma-separated, or patterns like public.*
+    "table.include.list": "public.*",
+
+    // Logical decoding plugin and replication artifacts
+    "plugin.name": "pgoutput",
+    "slot.name": "debezium_slot",
+    "publication.name": "dbz_publication",
+
+    // Payload and event behavior
+    "tombstones.on.delete": "false",
+    "decimal.handling.mode": "string",
+    // Skip TRUNCATE events (t)
+    "skipped.operations": "t",
+
+    // Controls initial snapshot behavior: initial | initial_only | never
+    "snapshot.mode": "initial"
+  }
+}
