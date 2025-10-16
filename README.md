@@ -10,7 +10,7 @@ Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, R
 
 - Docker + Docker Compose
 - Node.js 20+ and pnpm
-- Moose CLI: `npm i -g @514labs/moose-cli`
+- Moose CLI: `bash -i <(curl -fsSL https://fiveonefour.com/install.sh) moose`
 
 ### 1) Clone & Install
 
