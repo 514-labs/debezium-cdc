@@ -13,7 +13,7 @@ Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, R
 ### 1) Clone & Install
 
 ```bash
-git clone okane16/debezium-cdc
+gh repo clone okane16/debezium-cdc
 cd debezium-cdc
 pnpm install
 ```
