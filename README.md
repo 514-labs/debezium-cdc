@@ -86,7 +86,7 @@ app/
 │   │   └── another-table.ts        # Per-table transform
 │   └── 3-destinations/             # ClickHouse targets
 │       ├── olap-tables.ts          # Click table definitions (ReplacingMergeTree)
-│       └── intermediate-streams.ts # Streaming buffers to store results from transforms before writing to ClickHouse tables
+│       └── sink-topics.ts          # Streaming buffers to store results from transforms before writing to ClickHouse tables
 ├── oltp/
 │   ├── connection.ts               # PostgreSQL connection (Drizzle)
 │   ├── schema.ts                   # Drizzle schema

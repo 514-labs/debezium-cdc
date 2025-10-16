@@ -2,7 +2,7 @@
 // Pattern: CDC Source → Transform Function → Intermediate Stream → OLAP Table
 
 import { cdcAnotherTable } from "../1-sources/typed-topics";
-import { processedAnotherTable } from "../3-destinations/intermediate-streams";
+import { processedAnotherTable } from "../3-destinations/sink-topics";
 import { handleCDCPayload } from "./payload-handler";
 import { GenericCDCEvent, OlapAnotherTable } from "../../models";
 import { AnotherTable } from "../../oltp/schema";
