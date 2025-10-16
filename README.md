@@ -36,7 +36,7 @@ On first start, Moose runs the script configured in `moose.config.toml`:
 
 ```toml
 [http_server_config]
-...
+#...
 on_first_start_script = "./setup-cdc.sh"
 ```
 
