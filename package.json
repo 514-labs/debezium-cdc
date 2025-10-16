@@ -18,7 +18,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@514labs/moose-lib": "^0.6.132",
+    "@514labs/moose-lib": "^0.6.136",
     "axios": "^1.7.7",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
@@ -27,7 +27,7 @@
     "typia": "^9.6.1"
   },
   "devDependencies": {
-    "@514labs/moose-cli": "^0.6.132",
+    "@514labs/moose-cli": "^0.6.136",
     "@faker-js/faker": "^10.0.0",
     "@types/node": "^20.12.12",
     "@types/pg": "^8.11.10",

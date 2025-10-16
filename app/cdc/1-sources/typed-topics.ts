@@ -4,16 +4,17 @@
 
 import { Stream } from "@514labs/moose-lib";
 import {
-  PgCdcPublicAnotherTable,
-  PgCdcPublicCustomerAddresses,
+  PgCdcPublicAnotherTableStream,
+  PgCdcPublicCustomerAddressesStream,
 } from "./externalTopics";
 import { GenericCDCEvent } from "../../models";
 import { AnotherTable, CustomerAddress } from "../../oltp/schema";
 
 // Type-safe CDC streams - use these in your transforms!
-export const cdcAnotherTable = PgCdcPublicAnotherTable as Stream<
+export const cdcAnotherTable = PgCdcPublicAnotherTableStream as Stream<
   GenericCDCEvent<AnotherTable>
 >;
-export const cdcCustomerAddresses = PgCdcPublicCustomerAddresses as Stream<
-  GenericCDCEvent<CustomerAddress>
->;
+export const cdcCustomerAddresses =
+  PgCdcPublicCustomerAddressesStream as Stream<
+    GenericCDCEvent<CustomerAddress>
+  >;

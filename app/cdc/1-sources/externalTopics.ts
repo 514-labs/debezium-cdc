@@ -3,11 +3,11 @@
 
 import { Stream, LifeCycle } from "@514labs/moose-lib";
 
-export const PgCdcPublicAnotherTable = new Stream<{}>(
+export const PgCdcPublicAnotherTableStream = new Stream<{}>(
   "pg-cdc.public.another_table",
   { lifeCycle: LifeCycle.EXTERNALLY_MANAGED }
 );
-export const PgCdcPublicCustomerAddresses = new Stream<{}>(
+export const PgCdcPublicCustomerAddressesStream = new Stream<{}>(
   "pg-cdc.public.customer_addresses",
   { lifeCycle: LifeCycle.EXTERNALLY_MANAGED }
 );

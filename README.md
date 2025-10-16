@@ -153,9 +153,27 @@ See `postgres-connector.jsonc` for an annotated, human-friendly version. The act
 
 ## 🐛 Troubleshooting
 
-- If `setup-cdc.sh` fails: `chmod +x setup-cdc.sh` then `pnpm dev`
+- If `setup-cdc.sh` fails: `chmod +x setup-cdc.sh` then `moose dev`
 - Check connector: `curl http://localhost:8084/connectors/postgres-connector/status`
 - Verify topics: `cat app/cdc/1-sources/externalTopics.ts`
+
+- If not all dev containers start with `moose dev`: stop the dev server, clear Docker volumes, and retry. This resets local data (PostgreSQL, ClickHouse, Redpanda).
+
+  ```bash
+  # Stop Moose dev (Ctrl+C in the terminal running it)
+  # Tear down containers and remove volumes created by the compose override
+  docker compose -f docker-compose.dev.override.yaml down -v --remove-orphans
+
+  # Optional cleanup of dangling volumes/networks
+  docker volume prune -f
+  docker network prune -f
+
+  # Start again
+  moose dev
+
+  # Re-seed if needed
+  pnpm db:seed
+  ```
 
 ## 📚 References
 
@@ -163,3 +181,4 @@ See `postgres-connector.jsonc` for an annotated, human-friendly version. The act
 - Moose: https://docs.moosejs.com/
 - Drizzle ORM: https://orm.drizzle.team/
 - Redpanda: https://docs.redpanda.com/
+- ClickHouse: https://clickhouse.com/docs
