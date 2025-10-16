@@ -1,10 +1,10 @@
-# Debezium CDC with MooseStack & Drizzle
+# Code-First CDC to ClickHouse with Debezium, Redpanda, and MooseStack
 
 Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, Redpanda, and ClickHouse.
 
 ![Diagram](./cdc-debezium-pg.png)
 
-[Read the walkthrough blog post for this demo](https://www.fiveonefour.com/blog/cdc-postgres-to-clickhouse-debezium-drizzle)
+[Read the demo walkthrough](https://www.fiveonefour.com/blog/cdc-postgres-to-clickhouse-debezium-drizzle).
 
 ## 🚀 Quick Start
 
