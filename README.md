@@ -1,6 +1,8 @@
 # Debezium CDC with Moose & Drizzle
 
-Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, Redpanda, Apicurio (JSON Schema), and ClickHouse.
+Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, Redpanda, and ClickHouse.
+
+![Diagram](./cdc-debezium-pg.png)
 
 ## 🚀 Quick Start
 
@@ -71,6 +73,10 @@ The Drizzle Studio GUI lets you easily view, edit, and delete rows in your Postg
 ```bash
 pnpm db:studio  # http://local.drizzle.studio/
 ```
+
+## Detailed Streaming Pipeline Diagram
+
+![Diagram](./cdc-debezium-pipeline.png)
 
 ## 📁 app/ Structure
 
