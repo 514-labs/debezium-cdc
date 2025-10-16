@@ -1,4 +1,4 @@
-# Debezium CDC with Moose & Drizzle
+# Debezium CDC with MooseStack & Drizzle
 
 Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, Redpanda, and ClickHouse.
 
