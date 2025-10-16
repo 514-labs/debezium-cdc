@@ -7,13 +7,13 @@ import {
   PgCdcPublicAnotherTable,
   PgCdcPublicCustomerAddresses,
 } from "./externalTopics";
-import {
-  AnotherTableChangeEvent,
-  CustomerAddressChangeEvent,
-} from "../../models";
+import { GenericCDCEvent } from "../../models";
+import { AnotherTable, CustomerAddress } from "../../oltp/schema";
 
 // Type-safe CDC streams - use these in your transforms!
-export const cdcAnotherTable =
-  PgCdcPublicAnotherTable as Stream<AnotherTableChangeEvent>;
-export const cdcCustomerAddresses =
-  PgCdcPublicCustomerAddresses as Stream<CustomerAddressChangeEvent>;
+export const cdcAnotherTable = PgCdcPublicAnotherTable as Stream<
+  GenericCDCEvent<AnotherTable>
+>;
+export const cdcCustomerAddresses = PgCdcPublicCustomerAddresses as Stream<
+  GenericCDCEvent<CustomerAddress>
+>;
