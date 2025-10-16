@@ -4,6 +4,8 @@ Easy-to-run demo of a CDC pipeline using Debezium (Kafka Connect), PostgreSQL, R
 
 ![Diagram](./cdc-debezium-pg.png)
 
+[Read the walkthrough blog post for this demo](https://www.fiveonefour.com/blog/cdc-postgres-to-clickhouse-debezium-drizzle)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
