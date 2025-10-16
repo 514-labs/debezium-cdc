@@ -1,5 +1,5 @@
-import { db, pool } from "./db";
-import { customerAddresses } from "./db/schema";
+import { db, pool } from "./connection";
+import { customerAddresses } from "./schema";
 import { sql } from "drizzle-orm";
 import { faker } from "@faker-js/faker";
 
@@ -22,7 +22,7 @@ const generateRandomCustomer = () => {
   };
 };
 
-async function seedDatabase(count: number = 10000) {
+async function seedDatabase(count: number = 1000) {
   const BATCH_SIZE = 1000;
   console.log(`🌱 Seeding database with ${count} random customers...`);
   console.log(`📦 Using batch size: ${BATCH_SIZE}`);
@@ -87,39 +87,6 @@ async function seedDatabase(count: number = 10000) {
   }
 }
 
-async function listCustomers() {
-  console.log("📋 Listing all customers...\n");
-
-  try {
-    const customers = await db
-      .select()
-      .from(customerAddresses)
-      .orderBy(customerAddresses.id);
-
-    console.log(`Found ${customers.length} customers:`);
-    console.log("─".repeat(80));
-
-    customers.forEach((customer) => {
-      console.log(
-        `ID: ${customer.id.toString().padEnd(4)} | ${customer.first_name} ${
-          customer.last_name
-        } | ${customer.email}`
-      );
-      console.log(
-        `       ${customer.res_address || "No address"} | ${
-          customer.state || "N/A"
-        }, ${customer.country || "N/A"}`
-      );
-      console.log("─".repeat(80));
-    });
-  } catch (error) {
-    console.error("❌ Error listing customers:", error);
-    throw error;
-  } finally {
-    await pool.end();
-  }
-}
-
 async function clearDatabase() {
   console.log("🗑️  Clearing all customers from database...");
 
@@ -146,10 +113,6 @@ switch (command) {
     seedDatabase(count);
     break;
 
-  case "list":
-    listCustomers();
-    break;
-
   case "clear":
     clearDatabase();
     break;
@@ -160,12 +123,10 @@ switch (command) {
     console.log(
       "  pnpm db:seed [count]  - Seed database with random customers (default: 10)"
     );
-    console.log("  pnpm db:list          - List all customers");
     console.log("  pnpm db:clear         - Clear all customers");
     console.log("\nExamples:");
     console.log("  pnpm db:seed 5        - Create 5 random customers");
     console.log("  pnpm db:seed 100000   - Create 100k customers (batched)");
-    console.log("  pnpm db:list          - View all customers");
     console.log("  pnpm db:clear         - Delete all customers");
     console.log(
       "\n💡 Use 'pnpm db:studio' to open Drizzle Studio for visual database management"

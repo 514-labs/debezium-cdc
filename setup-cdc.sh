@@ -12,11 +12,11 @@ wait_for_kafka_connect() {
             return 0
         else
             echo "  Waiting for Kafka Connect... ($((i+1))/30)"
-            sleep 3
+            sleep 1
             i=$((i+1))
         fi
     done
-    echo '❌ Kafka Connect not ready after 90s'
+    echo '❌ Kafka Connect not ready after 30s'
     exit 1
 }
 
@@ -85,9 +85,9 @@ fi
 # Seed initial data using Drizzle
 echo "🌱 Seeding initial data with Drizzle..."
 if command -v pnpm &> /dev/null; then
-    pnpm db:seed 1000
+    pnpm db:seed 10
 else
-    npm run db:seed 1000
+    npm run db:seed 10
 fi
 
 # Ensure connector config exists

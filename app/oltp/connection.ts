@@ -1,3 +1,6 @@
+// PostgreSQL database connection using Drizzle ORM
+// This is the source database that Debezium monitors for changes
+
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "./schema";
