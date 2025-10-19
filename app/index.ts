@@ -7,3 +7,4 @@ export * from "./cdc/2-transforms/another-table";
 export * from "./cdc/2-transforms/customer-addresses";
 export * from "./cdc/3-destinations/olap-tables";
 export * from "./cdc/3-destinations/sink-topics";
+export { exampleExpressApi } from "./api";

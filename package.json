@@ -3,10 +3,13 @@
   "version": "0.0",
   "scripts": {
     "moose": "moose-cli",
-    "build": "moose-cli build --docker",
+    "build": "npm run tsoa:gen && moose-cli build --docker",
     "dev": "moose-cli dev",
     "moose-update": "pnpm update @514labs/moose-lib @514labs/moose-cli",
     "dev:kafka:pull": "moose-cli kafka pull localhost:19092 --schema-registry http://localhost:8081 --path app/cdc/1-sources --exclude \"{__consumer_offsets,connect_*,_schemas}\"",
+    "tsoa:gen": "tsoa spec-and-routes",
+    "tsoa:spec": "tsoa spec",
+    "tsoa:routes": "tsoa routes",
     "db:seed": "ts-node app/oltp/seed.ts seed all",
     "db:seed:customers": "ts-node app/oltp/seed.ts seed customers",
     "db:seed:another": "ts-node app/oltp/seed.ts seed another",
@@ -15,23 +18,35 @@
     "db:clear:another": "ts-node app/oltp/seed.ts clear another",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "prepare": "ts-patch install"
   },
   "dependencies": {
-    "@514labs/moose-lib": "^0.6.136",
+    "@514labs/moose-lib": "^0.6.138",
+    "@tsoa/runtime": "^6.6.0",
     "axios": "^1.7.7",
+    "cors": "^2.8.5",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
+    "express": "^5.1.0",
+    "express-jsdoc-swagger": "^1.8.0",
     "pg": "^8.11.3",
-    "ts-patch": "^3.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "tsoa": "^6.6.0",
     "typia": "^9.6.1"
   },
   "devDependencies": {
-    "@514labs/moose-cli": "^0.6.136",
+    "@514labs/moose-cli": "^0.6.138",
     "@faker-js/faker": "^10.0.0",
+    "@types/body-parser": "^1.19.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
     "@types/node": "^20.12.12",
     "@types/pg": "^8.11.10",
-    "ts-node": "^10.9.2"
+    "@types/swagger-ui-express": "^4.1.8",
+    "ts-node": "^10.9.2",
+    "ts-patch": "^3.3.0",
+    "typescript": "~5.9.2"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

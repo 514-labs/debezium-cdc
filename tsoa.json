@@ -1,0 +1,16 @@
+{
+  "entryFile": "app/api.ts",
+  "noImplicitAdditionalProperties": "throw-on-extras",
+  "controllerPathGlobs": ["app/controllers/**/*.ts"],
+  "spec": {
+    "outputDirectory": ".generated",
+    "specVersion": 3,
+    "host": "localhost:4000",
+    "basePath": "/express",
+    "schemes": ["http"]
+  },
+  "routes": {
+    "routesDir": ".generated",
+    "middleware": "express"
+  }
+}
