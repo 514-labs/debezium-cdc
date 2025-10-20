@@ -37,7 +37,7 @@ app.get(
     if (result.success) {
       res.send(result.data);
     } else {
-      res.status(400).json({ error: result.errors.join(", ") });
+      res.status(400).json({ error: result.errors.map(s => JSON.stringify(s)) });
     }
   }
 );
