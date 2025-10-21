@@ -1,4 +1,4 @@
-import { UInt8, UInt64, LowCardinality } from "@514labs/moose-lib";
+import { UInt8, UInt64, LowCardinality, ClickHouseDefault } from "@514labs/moose-lib";
 import { CustomerAddress, AnotherTable } from "./oltp/schema";
 
 export type CdcFields = {
@@ -15,12 +15,16 @@ export type OlapAnotherTable = Omit<AnotherTable, "id" | "random_number"> &
 
 export type OlapCustomerAddress = Omit<
   CustomerAddress,
-  "id" | "country" | "state"
+  "id" | "country" | "state" | "res_address" | "work_address" | "phone_1" | "phone_2"
 > &
   CdcFields & {
     id: UInt64;
-    country: string & LowCardinality;
-    state: string & LowCardinality;
+    country: string & LowCardinality & ClickHouseDefault<"'UNKNOWN'">;
+    state: string & LowCardinality & ClickHouseDefault<"'UNKNOWN'">;
+    res_address: string & ClickHouseDefault<"''">;
+    work_address: string & ClickHouseDefault<"''">;
+    phone_1: string & ClickHouseDefault<"''">;
+    phone_2: string & ClickHouseDefault<"''">;
   };
 
 export type GenericCDCEvent<T> = {
