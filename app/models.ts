@@ -1,4 +1,4 @@
-import { UInt8, UInt64, LowCardinality } from "@514labs/moose-lib";
+import { UInt8, UInt64, LowCardinality, ClickHouseDefault } from "@514labs/moose-lib";
 import { CustomerAddress, AnotherTable } from "./oltp/schema";
 
 export type CdcFields = {
@@ -13,16 +13,21 @@ export type OlapAnotherTable = Omit<AnotherTable, "id" | "random_number"> &
     random_number: UInt64;
   };
 
+// OlapCustomerAddress demonstrates selective field mapping:
+// Fields inherited as-is from CustomerAddress 
+// (keeping original type; all fields non-nullable unless expressly made nullable):
 export type OlapCustomerAddress = Omit<
   CustomerAddress,
-  "id" | "country" | "state"
+  "id" | "country" | "state" | "work_address" | "phone_2"
 > &
   CdcFields & {
-    id: UInt64;
-    country: string & LowCardinality;
-    state: string & LowCardinality;
+    id: UInt64;						              // stricter type
+    country: string & LowCardinality;		// stricter type
+    state: string & LowCardinality;			// stricter type
+    work_address: string & ClickHouseDefault<"''">;	// default instead of nullable
+    phone_2?: string;		                // nullable (best practice if 95%+ empty column)
   };
-
+  
 export type GenericCDCEvent<T> = {
   schemaId: string;
   payload: {
