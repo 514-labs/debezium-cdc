@@ -21,11 +21,11 @@ export type OlapCustomerAddress = Omit<
   "id" | "country" | "state" | "work_address" | "phone_2"
 > &
   CdcFields & {
-    id: UInt64;						// stricter type
-    country: string & LowCardinality;			// stricter type
+    id: UInt64;						              // stricter type
+    country: string & LowCardinality;		// stricter type
     state: string & LowCardinality;			// stricter type
     work_address: string & ClickHouseDefault<"''">;	// default instead of nullable
-    phone_2?: string;		// nullable (best practice if 95%+ empty column)
+    phone_2?: string;		                // nullable (best practice if 95%+ empty column)
   };
   
 export type GenericCDCEvent<T> = {
