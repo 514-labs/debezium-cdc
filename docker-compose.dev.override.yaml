@@ -1,18 +1,90 @@
 version: "3.8"
 
+# =============================================================================
+# Debezium CDC - Kafka Connect for Moose Dev
+# =============================================================================
+#
+# This runs Kafka Connect with Debezium, configured to match production.
+# Connect to any PostgreSQL database by setting env vars in .env
+#
+# Usage:
+#   moose dev              # Start with Moose
+#   docker compose up      # Start standalone
+#
+# For local test database:
+#   Uncomment the cdc-postgres service below
+#
+# Configuration aligned with production (poc-blueprints/debezium)
+# =============================================================================
+
 services:
-  # CDC PostgreSQL Database - extends Moose's infrastructure
-  cdc-postgres:
-    image: postgres:14
-    container_name: cdc-postgres
-    environment:
-      POSTGRES_DB: test-db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  kafka-connect:
+    image: quay.io/debezium/connect:3.3
+    container_name: kafka-connect-cdc
     ports:
-      - "5433:5432"
+      - "${KAFKA_CONNECT_PORT:-8084}:8083"
+    environment:
+      # Kafka/Redpanda connection
+      BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-redpanda:9092}
+
+      # Group identification - should be unique per deployment
+      GROUP_ID: ${KAFKA_CONNECT_GROUP_ID:-cdc-connect-local}
+
+      # Internal topics (based on GROUP_ID for isolation)
+      CONFIG_STORAGE_TOPIC: ${KAFKA_CONNECT_GROUP_ID:-cdc-connect-local}-configs
+      OFFSET_STORAGE_TOPIC: ${KAFKA_CONNECT_GROUP_ID:-cdc-connect-local}-offsets
+      STATUS_STORAGE_TOPIC: ${KAFKA_CONNECT_GROUP_ID:-cdc-connect-local}-status
+
+      # Replication factors (1 for local, 3 for production)
+      CONFIG_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      OFFSET_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+      STATUS_STORAGE_REPLICATION_FACTOR: ${KAFKA_REPLICATION_FACTOR:-1}
+
+      # JSON converters (matching production - no schema registry required)
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      # Internal converters
+      INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      CONNECT_INTERNAL_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+
+      # Producer settings (matching production)
+      CONNECT_PRODUCER_COMPRESSION_TYPE: snappy
+      CONNECT_PRODUCER_ACKS: all
+      CONNECT_PRODUCER_MAX_REQUEST_SIZE: "10485760"
+      CONNECT_PRODUCER_BUFFER_MEMORY: "67108864"
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8083/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ===========================================================================
+  # OPTIONAL: Test PostgreSQL Database
+  # ===========================================================================
+  # Uncomment this service for local development/testing.
+  # For external databases, leave commented and configure .env instead.
+  #
+  # To enable: Remove the leading # from each line below
+  # To disable: Add # to the beginning of each line below
+
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-test-db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5433}:5432"
     volumes:
-      - cdc-postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     command:
       - postgres
       - -c
@@ -22,68 +94,14 @@ services:
       - -c
       - max_replication_slots=1
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d test-db"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-test-db}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Kafka Connect with Debezium - integrates with Moose's Redpanda
-  kafka-connect:
-    image: quay.io/debezium/connect:3.3
-    container_name: kafka-connect-cdc
-    depends_on:
-      cdc-postgres:
-        condition: service_healthy
-      schema-registry:
-        condition: service_healthy
-    ports:
-      - "8084:8083"
-    environment:
-      # Connect to Moose's Redpanda through the shared network
-      BOOTSTRAP_SERVERS: redpanda:9092
-      ENABLE_APICURIO_CONVERTERS: "true"
-      GROUP_ID: 1
-      CONFIG_STORAGE_TOPIC: connect_configs
-      OFFSET_STORAGE_TOPIC: connect_offsets
-      STATUS_STORAGE_TOPIC: connect_statuses
-      # Use Apicurio JSON Schema converters with Schema Registry
-      KEY_CONVERTER: io.apicurio.registry.utils.converter.ExtJsonConverter
-      VALUE_CONVERTER: io.apicurio.registry.utils.converter.ExtJsonConverter
-      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: "true"
-      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "true"
-      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_URL": http://schema-registry:8080/apis/registry/v2
-      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_URL": http://schema-registry:8080/apis/registry/v2
-      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_AUTO-REGISTER": "true"
-      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_AUTO-REGISTER": "true"
-      "CONNECT_KEY_CONVERTER_APICURIO.REGISTRY_FIND-LATEST": "true"
-      "CONNECT_VALUE_CONVERTER_APICURIO.REGISTRY_FIND-LATEST": "true"
-      CONNECT_KEY_CONVERTER_APICURIO_USE_ID: contentId
-      CONNECT_VALUE_CONVERTER_APICURIO_USE_ID: contentId
-      CONNECT_KEY_CONVERTER_APICURIO_REGISTRY_HEADERS_ENABLED: "false"
-      CONNECT_VALUE_CONVERTER_APICURIO_REGISTRY_HEADERS_ENABLED: "false"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8083/connectors || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
-
-  # Apicurio Schema Registry for JSON Schema
-  schema-registry:
-    image: apicurio/apicurio-registry-mem:2.5.10.Final
-    container_name: schema-registry
-    ports:
-      - "8081:8080"
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "curl -f http://localhost:8080/apis/registry/v2/groups || exit 1",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
-
 volumes:
-  cdc-postgres-data:
+  postgres-data:

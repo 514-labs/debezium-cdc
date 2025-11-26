@@ -1,3 +1,8 @@
+/**
+ * PostgreSQL database schema definitions
+ * Defines tables monitored by Debezium CDC
+ */
+
 import {
   pgTable,
   serial,

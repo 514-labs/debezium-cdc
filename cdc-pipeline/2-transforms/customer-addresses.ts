@@ -4,8 +4,8 @@
 import { cdcCustomerAddresses } from "../1-sources/typed-topics";
 import { processedCustomerAddresses } from "../3-destinations/sink-topics";
 import { handleCDCPayload } from "./payload-handler";
-import { GenericCDCEvent, OlapCustomerAddress } from "../../models";
-import { CustomerAddress } from "../../oltp/schema";
+import { GenericCDCEvent, OlapCustomerAddress } from "../models";
+import { CustomerAddress } from "../../postgres/src/schema";
 
 // Register the transform - this runs for every message on the CDC topic
 cdcCustomerAddresses.addTransform(

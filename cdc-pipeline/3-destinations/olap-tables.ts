@@ -3,7 +3,7 @@
 // based on the 'ver' field (ts_ms) and respects the 'isDeleted' flag.
 
 import { OlapTable, ClickHouseEngines } from "@514labs/moose-lib";
-import { OlapAnotherTable, OlapCustomerAddress } from "../../models";
+import { OlapAnotherTable, OlapCustomerAddress } from "../models";
 
 export const olapCustomerAddresses = new OlapTable<OlapCustomerAddress>(
   "customer_addresses",

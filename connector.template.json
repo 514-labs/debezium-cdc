@@ -1,26 +1,33 @@
 {
-  "name": "postgres-connector",
+  "name": "${CDC_CONNECTOR_NAME}",
   "config": {
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
-    "database.hostname": "host.docker.internal",
-    "database.port": "5433",
-    "database.user": "postgres",
-    "database.password": "postgres",
-    "database.dbname": "test-db",
-    "topic.prefix": "pg-cdc",
-    "table.include.list": "public.*",
-    "plugin.name": "pgoutput",
-    "slot.name": "debezium_slot",
-    "publication.name": "dbz_publication",
-    "snapshot.mode": "initial",
+
+    "database.hostname": "${DB_HOST}",
+    "database.port": "${DB_PORT}",
+    "database.user": "${DB_USER}",
+    "database.password": "${DB_PASSWORD}",
+    "database.dbname": "${DB_NAME}",
+
+    "topic.prefix": "${CDC_TOPIC_PREFIX}",
+    "table.include.list": "${CDC_TABLE_INCLUDE_LIST}",
+
+    "plugin.name": "${CDC_PLUGIN_NAME}",
+    "slot.name": "${CDC_SLOT_NAME}",
+    "publication.name": "${CDC_PUBLICATION_NAME}",
+
+    "snapshot.mode": "${CDC_SNAPSHOT_MODE}",
+
     "tombstones.on.delete": "false",
     "decimal.handling.mode": "string",
     "skipped.operations": "t",
     "include.schema.changes": "false",
+
     "key.converter": "org.apache.kafka.connect.json.JsonConverter",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
     "key.converter.schemas.enable": "false",
     "value.converter.schemas.enable": "false",
+
     "producer.max.request.size": "10485760",
     "producer.buffer.memory": "67108864"
   }

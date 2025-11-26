@@ -7,28 +7,28 @@
     "dev": "moose-cli dev",
     "moose-update": "pnpm update @514labs/moose-lib @514labs/moose-cli",
     "dev:kafka:pull": "moose-cli kafka pull localhost:19092 --schema-registry http://localhost:8081 --path app/cdc/1-sources --exclude \"{__consumer_offsets,connect_*,_schemas}\"",
-    "db:seed": "ts-node app/oltp/seed.ts seed all",
-    "db:seed:customers": "ts-node app/oltp/seed.ts seed customers",
-    "db:seed:another": "ts-node app/oltp/seed.ts seed another",
-    "db:clear": "ts-node app/oltp/seed.ts clear all",
-    "db:clear:customers": "ts-node app/oltp/seed.ts clear customers",
-    "db:clear:another": "ts-node app/oltp/seed.ts clear another",
-    "db:generate": "drizzle-kit generate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "cdc:setup": "ts-node setup-cdc.ts",
+    "cdc:setup:dry-run": "ts-node setup-cdc.ts --dry-run",
+    "postgres:setup": "ts-node postgres/src/index.ts setup",
+    "db:seed": "ts-node postgres/src/index.ts seed",
+    "db:clear": "ts-node postgres/src/index.ts clear",
+    "db:generate": "drizzle-kit generate --config=postgres/drizzle.config.ts",
+    "db:push": "drizzle-kit push --config=postgres/drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config=postgres/drizzle.config.ts"
   },
   "dependencies": {
     "@514labs/moose-lib": "^0.6.136",
     "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
     "drizzle-kit": "^0.31.5",
     "drizzle-orm": "^0.44.6",
+    "drizzle-seed": "^0.3.1",
     "pg": "^8.11.3",
     "ts-patch": "^3.3.0",
     "typia": "^9.6.1"
   },
   "devDependencies": {
     "@514labs/moose-cli": "^0.6.136",
-    "@faker-js/faker": "^10.0.0",
     "@types/node": "^20.12.12",
     "@types/pg": "^8.11.10",
     "ts-node": "^10.9.2"

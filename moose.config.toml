@@ -1,4 +1,6 @@
 language = "Typescript"
+source_dir = "cdc-pipeline"
+
 
 [typescript_config]
 # Package manager to use for installing dependencies
@@ -24,7 +26,7 @@ native_port = 9000
 host = "localhost"
 port = 4000
 management_port = 5001
-on_first_start_script = "./setup-cdc.sh"
+on_first_start_script = "pnpm cdc:setup"
 
 [redis_config]
 url = "redis://127.0.0.1:6379"

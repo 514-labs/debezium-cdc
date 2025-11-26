@@ -4,8 +4,8 @@
 import { cdcAnotherTable } from "../1-sources/typed-topics";
 import { processedAnotherTable } from "../3-destinations/sink-topics";
 import { handleCDCPayload } from "./payload-handler";
-import { GenericCDCEvent, OlapAnotherTable } from "../../models";
-import { AnotherTable } from "../../oltp/schema";
+import { GenericCDCEvent, OlapAnotherTable } from "../models";
+import { AnotherTable } from "../../postgres/src/schema";
 
 // Register the transform - this runs for every message on the CDC topic
 cdcAnotherTable.addTransform(

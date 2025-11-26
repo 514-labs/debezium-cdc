@@ -42,11 +42,12 @@ On first start, Moose runs the script configured in `moose.config.toml`:
 on_first_start_script = "./setup-cdc.sh"
 ```
 
-What `setup-cdc.sh` does:
+What `setup-cdc.sh` (which runs `setup-cdc.ts`) does:
 
-- Pushes the Drizzle schema from `app/oltp/schema.ts` to the local PostgreSQL
-- Seeds tables with random sample data
-- Creates or updates the Debezium postgres connector, using the JSON config in `postgres-connector.json`
+1. **Validates database setup** - Checks database connectivity, existence, and required tables
+2. **Prompts for database setup** - If database is not ready, asks if you want to run PostgreSQL setup automatically
+3. **Runs PostgreSQL setup** (if requested) - Pushes schema and seeds initial data
+4. **Creates Debezium connector** - Sets up the CDC connector via Kafka Connect REST API
 
 You’ll see the script’s output and subsequent CDC logs in the same terminal where you ran `moose dev`.
 
@@ -95,10 +96,7 @@ app/
 │   └── 3-destinations/             # ClickHouse targets
 │       ├── olap-tables.ts          # Click table definitions (ReplacingMergeTree)
 │       └── sink-topics.ts          # Streaming buffers to store results from transforms before writing to ClickHouse tables
-├── oltp/
-│   ├── connection.ts               # PostgreSQL connection (Drizzle)
-│   ├── schema.ts                   # Drizzle schema
-│   └── seed.ts                     # Seeding CLI
+├── models.ts                       # Shared types
 ├── models.ts                       # Shared types
 └── index.ts                        # Entry point
 ```

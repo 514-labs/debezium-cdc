@@ -3,7 +3,7 @@
     "outDir": "dist",
     "esModuleInterop": true,
     "paths": {
-      "datamodels/*": ["./app/ingest/*"],
+      "datamodels/*": ["cdc/ingest/*"],
       "versions/*": ["./.moose/versions/*"]
     },
     "plugins": [
@@ -19,6 +19,6 @@
     "resolveJsonModule": true,
     "moduleResolution": "node"
   },
-  "include": ["app/**/*.ts", "drizzle.config.ts"],
+  "include": ["cdc/**/*.ts", "drizzle.config.ts"],
   "exclude": ["node_modules", "dist", "drizzle"]
 }
