@@ -4,3 +4,4 @@ dist
 coverage
 .ts-node
 .env
+debezium-cdc.code-workspace
